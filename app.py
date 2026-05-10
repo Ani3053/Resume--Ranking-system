@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from src.preprocess import load_resumes
 from src.screening import rank_resumes
 
@@ -114,12 +115,23 @@ st.markdown("<div class='title'>📄 Resume Ranking System</div>", unsafe_allow_
 # Input
 st.markdown("<p class='white-text'>Enter Job Description</p>", unsafe_allow_html=True)
 job_desc = st.text_area("", placeholder="Python, ML, NLP, Pandas...", height=120)
-
+uploaded_files = st.file_uploader(
+    "Upload Resume PDFs",
+    type=["pdf"],
+    accept_multiple_files=True
+)
 # Button
 if st.button("🚀 Rank Resumes"):
     if job_desc.strip() == "":
         st.warning("Enter job description")
     else:
+        if uploaded_files:
+            for uploaded_file in uploaded_files:
+
+                temp_path = os.path.join("data/resumes", uploaded_file.name)
+
+                with open(temp_path, "wb") as f:
+                   f.write(uploaded_file.getbuffer())
         resumes = load_resumes()
         results = rank_resumes(resumes, job_desc)
         results = sorted(results, key=lambda x: x[1], reverse=True)

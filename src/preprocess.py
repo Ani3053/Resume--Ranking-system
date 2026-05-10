@@ -1,47 +1,32 @@
-import pytesseract
-from PIL import Image
+import pdfplumber
 import os
-import fitz  # PyMuPDF
 
-def extract_pdf_text(path):
+def read_pdf(file_path):
     text = ""
 
-    try:
-        doc = fitz.open(path)
-        for page in doc:
-            text += page.get_text("text")
-            
-        text = text.encode("utf-8", "ignore").decode("utf-8")
-        text = text.replace("\x88", " ")  # remove junk char
-        text = re.sub(r'\\x[0-9a-fA-F]+', ' ', text)  # remove hex noise
-        text = text.replace("\n", " ")
-        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
-        text = re.sub(r'\s+', ' ', text)
-    except Exception as e:
-        print(f"Error reading {path}: {e}")
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            extracted = page.extract_text()
 
-    return text.lower()
+            if extracted:
+                text += extracted + ""
 
-def load_resumes():
-    resumes = []
-    folder = "data/resumes"
+    return text
 
-    for file in os.listdir(folder):
-        full_path = os.path.join(folder, file)
+def load_resumes(folder_path="data/resumes"):
+    resumes = {}
 
+    for file in os.listdir(folder_path):
+
+        path = os.path.join(folder_path, file)
+
+        # TXT FILES
         if file.endswith(".txt"):
-            with open(full_path, "r", encoding="utf-8") as f:
-                text = f.read()
+            with open(path, "r", encoding="utf-8") as f:
+                resumes[file] = f.read()
 
+        # PDF FILES
         elif file.endswith(".pdf"):
-            text = extract_pdf_text(full_path)
-
-        else:
-            continue
-
-        if text and text.strip():
-            resumes.append((file, text))
-        else:
-            print(f"{file} is empty or unreadable")
+            resumes[file] = read_pdf(path)
 
     return resumes
